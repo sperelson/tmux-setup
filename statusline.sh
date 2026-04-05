@@ -59,27 +59,13 @@ else
   claude_mem="${claude_mem_kb}K"
 fi
 
-# Random animated glyph with matching colours
-anim_icons=( '󱚣' '󱜙' '󰚩' '󱚝' '󱚟' '󱚡' )
-anim_colors=(
-  '\033[01;32m'  # green  - full/empty
-  '\033[01;36m'  # cyan   - low use
-  '\033[01;33m'  # yellow - moderate
-  '\033[01;35m'  # magenta - elevated
-  '\033[38;5;208m' # orange - high
-  '\033[01;31m'  # red    - critical
-)
-anim_idx=$(( RANDOM % ${#anim_icons[@]} ))
-anim_glyph="${anim_icons[$anim_idx]}"
-anim_color="${anim_colors[$anim_idx]}"
-
 # Git information
 if git -C "$cwd" rev-parse --git-dir > /dev/null 2>&1; then
   repo_name=$(basename "$cwd")
 
-  printf '\033[01;36m%s\033[00m | %s | %b%s %s%%%s %b%s\033[00m | 󰍛 %s' \
-    "$repo_name" "$model" "$ctx_color" "$ctx_icon" "$ctx_pct" "$rate_info" "$anim_color" "$anim_glyph" "$claude_mem"
+  printf '\033[01;36m%s\033[00m | %s | %b%s %s%%%s\033[00m 󰍛 %s' \
+    "$repo_name" "$model" "$ctx_color" "$ctx_icon" "$ctx_pct" "$rate_info" "$claude_mem"
 else
-  printf '\033[01;36m%s\033[00m | %s | %b%s %s%%%s %b%s\033[00m | 󰍛 %s' \
-    "$cwd" "$model" "$ctx_color" "$ctx_icon" "$ctx_pct" "$rate_info" "$anim_color" "$anim_glyph" "$claude_mem"
+  printf '\033[01;36m%s\033[00m | %s | %b%s %s%%%s\033[00m 󰍛 %s' \
+    "$cwd" "$model" "$ctx_color" "$ctx_icon" "$ctx_pct" "$rate_info" "$claude_mem"
 fi

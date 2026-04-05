@@ -7,6 +7,7 @@ Custom tmux-powerkit plugins for the tmux status bar.
 | Plugin | Description |
 |--------|-------------|
 | **[Claude Code](#claude-code-plugin)** | Displays Claude Code rate limit usage (5h/7d) |
+| **[CPU AS](#cpu-apple-silicon-plugin)** | Accurate CPU usage for Apple Silicon macOS |
 | **[RAM](#ram-plugin)** | Accurate memory usage for Apple Silicon macOS |
 
 ## Files
@@ -14,6 +15,7 @@ Custom tmux-powerkit plugins for the tmux status bar.
 | File | Description |
 |------|-------------|
 | `claude_code.sh` | Claude Code rate limit plugin |
+| `cpuas.sh` | Accurate CPU usage plugin (replaces built-in `cpu`) |
 | `ram.sh` | Accurate RAM usage plugin (replaces built-in `memory`) |
 | `statusline.sh` | Claude Code status line script (bridges data to the plugin) |
 | `.tmux.conf` | Full tmux configuration with all plugins enabled |
@@ -24,6 +26,7 @@ Custom tmux-powerkit plugins for the tmux status bar.
 
 ```bash
 cp claude_code.sh ~/.tmux/plugins/tmux-powerkit/src/plugins/claude_code.sh
+cp cpuas.sh ~/.tmux/plugins/tmux-powerkit/src/plugins/cpuas.sh
 cp ram.sh ~/.tmux/plugins/tmux-powerkit/src/plugins/ram.sh
 ```
 
@@ -39,10 +42,10 @@ chmod +x ~/.claude/statusline.sh
 Add the plugins to your `@powerkit_plugins` list in `~/.tmux.conf`:
 
 ```bash
-set -g @powerkit_plugins "group(datetime,cpu,ram),claude_code,git"
+set -g @powerkit_plugins "group(datetime,cpuas,ram),claude_code,git"
 ```
 
-> **Note:** Use `ram` instead of `memory` for accurate Apple Silicon readings.
+> **Note:** Use `cpuas` instead of `cpu` and `ram` instead of `memory` for accurate Apple Silicon readings.
 
 ### 4. Ensure Claude Code statusLine is configured
 
@@ -68,6 +71,41 @@ Or from the terminal:
 ```bash
 tmux source-file ~/.tmux.conf
 ```
+
+---
+
+## CPU Apple Silicon Plugin
+
+A drop-in replacement for the built-in `cpu` plugin that provides accurate CPU readings on Apple Silicon macOS.
+
+### Why not the built-in cpu plugin?
+
+The built-in `cpu` plugin uses `top -l 1` on macOS, which returns the **cumulative-since-boot** CPU average — not a live snapshot. This inflates readings significantly, often showing 2x the actual load compared to Activity Monitor.
+
+### How it calculates
+
+The `cpuas` plugin uses `iostat -c 2 -w 1` and discards the first sample (cumulative). The second sample is a true 1-second delta of user + system time, matching Activity Monitor.
+
+On Linux it uses `/proc/stat` delta calculations between refresh cycles.
+
+### Settings
+
+All settings use the `@powerkit_plugin_cpuas_` prefix in `.tmux.conf`:
+
+```bash
+# Health thresholds (controls powerkit theme coloring)
+set -g @powerkit_plugin_cpuas_warning_threshold "70"
+set -g @powerkit_plugin_cpuas_critical_threshold "90"
+
+# Custom icon (Nerd Font glyph)
+set -g @powerkit_plugin_cpuas_icon "󰻠"
+```
+
+### Health coloring (via powerkit theme)
+
+- **ok**: Usage below 70%
+- **warning**: Usage 70-90%
+- **error**: Usage above 90%
 
 ---
 
