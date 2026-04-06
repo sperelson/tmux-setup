@@ -233,3 +233,20 @@ set -g @powerkit_plugin_claude_code_critical_threshold "60"
 - Data only appears after the **first API response** in a Claude Code session
 - The plugin hides automatically when the data file is stale (default: 10 minutes)
 - Stale timeout is configurable: `set -g @powerkit_plugin_claude_code_stale_seconds "600"`
+
+---
+
+## Useful Shell Aliases
+
+Add these to your `~/.zshrc` for convenient tmux management:
+
+```bash
+# Smart attach: reattach to existing session, or start a new one and restore via tmux-resurrect
+alias mux='tmux attach 2>/dev/null || { tmux new-session -d && tmux run-shell ~/.tmux/plugins/tmux-resurrect/scripts/restore.sh && tmux attach; }'
+
+# List all tmux sessions
+alias tls="tmux ls"
+
+# Kill the tmux server (all sessions)
+alias tk="tmux kill-server"
+```
