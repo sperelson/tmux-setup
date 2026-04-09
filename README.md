@@ -19,6 +19,7 @@ Custom tmux-powerkit plugins for the tmux status bar.
 | `ram.sh` | Accurate RAM usage plugin (replaces built-in `memory`) |
 | `statusline.sh` | Claude Code status line script (bridges data to the plugin) |
 | `.tmux.conf` | Full tmux configuration with all plugins enabled |
+| `tmux-panes/` | Claude Code skill for controlling tmux panes from Claude |
 
 ## Installation
 
@@ -233,6 +234,38 @@ set -g @powerkit_plugin_claude_code_critical_threshold "60"
 - Data only appears after the **first API response** in a Claude Code session
 - The plugin hides automatically when the data file is stale (default: 10 minutes)
 - Stale timeout is configurable: `set -g @powerkit_plugin_claude_code_stale_seconds "600"`
+
+---
+
+---
+
+## tmux Pane Control Skill
+
+A Claude Code skill that lets Claude control tmux panes — create splits, send commands, and capture output — directly from a conversation.
+
+### Files
+
+| File | Description |
+|------|-------------|
+| `tmux-panes/SKILL.md` | Full skill documentation (loaded by Claude when invoked) |
+| `tmux-panes/scripts/pane-send.sh` | Send a command to a pane and wait for completion via sentinel |
+| `tmux-panes/scripts/pane-capture.sh` | Capture N lines of scrollback from a pane |
+
+### Installation
+
+Copy the skill to your Claude skills directory:
+
+```bash
+cp -r tmux-panes ~/.claude/skills/tmux-panes
+```
+
+Claude will pick it up automatically — invoke it by asking Claude to run something in a tmux pane.
+
+### How it works
+
+`pane-send.sh` appends a unique sentinel string after the command, then polls the pane's scrollback until the sentinel appears. This reliably detects when a command has finished without requiring any shell integration or modification to the target pane.
+
+`pane-capture.sh` is a thin wrapper around `tmux capture-pane -S -N` for reading pane output without sending a command.
 
 ---
 
