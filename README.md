@@ -269,17 +269,62 @@ Claude will pick it up automatically — invoke it by asking Claude to run somet
 
 ---
 
-## tmux-resurrect: Tilde Expansion Bug Fix
+## tmux-resurrect Bug Fixes
 
-tmux-resurrect has a bug where restored panes open in `~` instead of the saved working directory. The `new_window()` function in `restore.sh` correctly expands `~` to `$HOME`, but `new_session()` and `new_pane()` do not.
+Two bugs in tmux-resurrect cause panes to lose their working directories on restore. All fixes go in `~/.tmux/plugins/tmux-resurrect/scripts/`. **Reapply after any tmux-resurrect plugin update** (`prefix + U`).
 
-**Fix:** In `~/.tmux/plugins/tmux-resurrect/scripts/restore.sh`, add this line to both the `new_session()` and `new_pane()` functions, right after the local variable declarations (before the `if` statement):
+### Fix 1: Tilde Expansion in `restore.sh`
+
+The `new_window()` function expands `~` to `$HOME`, but `new_session()` and `new_pane()` do not.
+
+**Fix:** In both `new_session()` and `new_pane()`, find the line `local pane_id="${session_name}:${window_number}.${pane_index}"` and add the tilde expansion line directly after it, before the `if` statement. The result should look like this in both functions:
 
 ```bash
-dir="${dir/#\~/$HOME}"
+	local pane_id="${session_name}:${window_number}.${pane_index}"
+	dir="${dir/#\~/$HOME}"
+	if is_restoring_pane_contents && pane_contents_file_exists "$pane_id"; then
 ```
 
-This matches the existing fix already present in `new_window()` (around line 132). **Reapply after any tmux-resurrect plugin update** (`prefix + U`).
+This matches the existing fix already present in `new_window()`.
+
+### Fix 2: Stdin Consumption Corrupts Save Data — `save.sh` + `restore.sh`
+
+The `dump_panes()` function in `save.sh` pipes raw pane data through a `while read` loop. Inside the loop, `pane_full_command` spawns subprocesses that inherit the pipe's stdin. When these subprocesses inadvertently read from stdin, they steal bytes from the pipe, causing the next `read` to get shifted fields — the `dir` field is lost and `pane_active` (a `0` or `1`) lands in its place.
+
+This particularly affects panes where Claude Code (or similar long-running TUI programs) was recently exited — 54 of 205 tested save files were corrupted this way.
+
+**Fix 2a — `save.sh`:** In the `dump_panes()` function, find the `pane_full_command` call and redirect stdin to `/dev/null`:
+
+```bash
+# Find this line:
+full_command="$(pane_full_command $pane_pid)"
+# Replace with:
+full_command="$(pane_full_command $pane_pid </dev/null)"
+```
+
+**Fix 2b — `restore.sh`:** In the `restore_pane()` function, add a fallback that recovers the directory from `pane_title` when the `dir` field is corrupt. Find these two consecutive lines:
+
+```bash
+		dir="$(remove_first_char "$dir")"
+		pane_full_command="$(remove_first_char "$pane_full_command")"
+```
+
+And insert the fallback block directly after them, before the `if [ "$session_name" == "0" ]` check:
+
+```bash
+		dir="$(remove_first_char "$dir")"
+		pane_full_command="$(remove_first_char "$pane_full_command")"
+		# If dir is not an absolute path (corrupted save), try pane_title as fallback
+		if [ -z "$dir" ] || [ "${dir:0:1}" != "/" ]; then
+			local fallback_dir="$(remove_first_char "$pane_title")"
+			if [ "${fallback_dir:0:1}" = "/" ]; then
+				dir="$fallback_dir"
+			fi
+		fi
+		if [ "$session_name" == "0" ]; then
+```
+
+This works because when the save corrupts, the shell's pane title (set by zsh's `precmd` to `:/path/to/dir`) still contains the correct working directory.
 
 ---
 
