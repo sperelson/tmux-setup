@@ -269,6 +269,20 @@ Claude will pick it up automatically — invoke it by asking Claude to run somet
 
 ---
 
+## tmux-resurrect: Tilde Expansion Bug Fix
+
+tmux-resurrect has a bug where restored panes open in `~` instead of the saved working directory. The `new_window()` function in `restore.sh` correctly expands `~` to `$HOME`, but `new_session()` and `new_pane()` do not.
+
+**Fix:** In `~/.tmux/plugins/tmux-resurrect/scripts/restore.sh`, add this line to both the `new_session()` and `new_pane()` functions, right after the local variable declarations (before the `if` statement):
+
+```bash
+dir="${dir/#\~/$HOME}"
+```
+
+This matches the existing fix already present in `new_window()` (around line 132). **Reapply after any tmux-resurrect plugin update** (`prefix + U`).
+
+---
+
 ## Useful Shell Aliases
 
 Add these to your `~/.zshrc` for convenient tmux management:
