@@ -18,8 +18,12 @@
 # Config (tmux options — all optional):
 #   @flash-bg       background colour    (default: #3d5a80)
 #   @flash-fg       foreground colour    (default: #e0e0e0)
-#   @flash-count    number of flashes    (default: 10)
-#   @flash-interval seconds on/off each  (default: 0.3)
+#   @flash-count    number of flashes    (default: 6)
+#   @flash-interval seconds on/off each  (default: 0.2)
+#
+# E.g.: 
+#  set -g @flash-count '2'
+#  set -g @flash-interval '0.5'
 #
 # Claude Code integration:
 #   Add the following to ~/.claude/settings.json under "hooks" to flash
