@@ -241,13 +241,15 @@ set -g @powerkit_plugin_claude_code_critical_threshold "60"
 
 ## tmux Pane Control Skill
 
-A Claude Code skill that lets Claude control tmux panes — create splits, send commands, and capture output — directly from a conversation.
+A Claude Code skill (`/pane`) that lets Claude run commands in tmux panes — find or create splits, send commands, and capture output — directly from a conversation.
 
 ### Files
 
 | File | Description |
 |------|-------------|
-| `tmux-panes/SKILL.md` | Full skill documentation (loaded by Claude when invoked) |
+| `tmux-panes/SKILL.md` | Skill definition (loaded by Claude when `/pane` is invoked) |
+| `tmux-panes/scripts/pane-run.sh` | Main entry point — combines ensure + send into one call |
+| `tmux-panes/scripts/pane-ensure.sh` | Find an idle pane or create one, return its ID |
 | `tmux-panes/scripts/pane-send.sh` | Send a command to a pane and wait for completion via sentinel |
 | `tmux-panes/scripts/pane-capture.sh` | Capture N lines of scrollback from a pane |
 
@@ -256,12 +258,16 @@ A Claude Code skill that lets Claude control tmux panes — create splits, send 
 Copy the skill to your Claude skills directory:
 
 ```bash
-cp -r tmux-panes ~/.claude/skills/tmux-panes
+cp -r tmux-panes ~/.claude/skills/pane
 ```
 
-Claude will pick it up automatically — invoke it by asking Claude to run something in a tmux pane.
+Claude will pick it up automatically — invoke with `/pane "command"` or ask Claude to run something in a tmux pane.
 
 ### How it works
+
+`pane-run.sh` is the main entry point. It calls `pane-ensure.sh` to find an existing idle pane (or create a new split), then either fires the command with `tmux send-keys` or delegates to `pane-send.sh` when output capture is needed.
+
+`pane-ensure.sh` looks for an idle, non-active pane in the current window (one running a shell). If none exists, it creates a new split and restores focus to the original pane. Named panes (`-t NAME`) are found by title across all windows.
 
 `pane-send.sh` appends a unique sentinel string after the command, then polls the pane's scrollback until the sentinel appears. This reliably detects when a command has finished without requiring any shell integration or modification to the target pane.
 
